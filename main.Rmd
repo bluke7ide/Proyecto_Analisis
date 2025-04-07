@@ -133,15 +133,13 @@ cuentas <- cuentas[cuentas$n > 8,]
 ```
 
 ```{r}
-library(wordcloud)
-library(RColorBrewer)
-
 wordcloud(words = cuentas$palabras,
           freq = cuentas$n,
           min.freq = 1,
-          colors = brewer.pal(8, "Dark2"),
+          colors = colorRampPalette(brewer.pal(8, "Dark2"))(50),
           random.order = FALSE)
 ```
+
 
 
 

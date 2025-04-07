@@ -5,7 +5,9 @@ pacman::p_load(
   jsonlite, 
   lubridate,
   tidyverse,
-  reticulate
+  reticulate,
+  wordcloud,
+  RColorBrewer
 )
 
 # Scripts de R ------------------------------------------------------------
