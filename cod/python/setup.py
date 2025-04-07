@@ -1,6 +1,6 @@
 # Librerías de Python -----------------------------------------------------     
 
-# !pip install pandas nltk datetime nltk deep_translator textblob
+# !pip install pandas nltk datetime deep_translator textblob
 
 import pandas as pd
 import time
@@ -11,3 +11,4 @@ from datetime import timedelta
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from deep_translator import GoogleTranslator
 from textblob import TextBlob
+

@@ -1,5 +1,147 @@
 ---
-title: "main"
-output: html_document
+title: "Proyecto Grupal - Análisis de Datos I"
+author: 
+  - Luis Fernando Amey Apuy - C20470
+  - Javier Hernández Navarro - C13674
+  - Gustavo Alberto Amador Fonseca - C20459
+date: "`r Sys.Date()`"
+output:
+  rmdformats::robobook:
+    self_contained: true
+    highlight: tango
 ---
+
+# Librerías y carga de datos
+```{r}
+source("cod/r/setup.R")
+```
+
+```{r}
+gen <- scrapW("genfiltrada")
+herra <- scrapT("herraII_08-07-24")
+```
+
+```{r, warning=FALSE}
+ggplot(gen, aes(x = dia)) +
+  geom_histogram(binwidth = 28, fill = "pink3", color = "red") +
+  labs(title = "Histograma de días",
+       x = "Horas",
+       y = "Frecuencia") +
+  theme_minimal() 
+
+```
+
+```{r}
+ggplot(gen, aes(x = dia, y = hora)) +
+  geom_point(color = "darkblue", alpha = 0.6) +
+  labs(title = "Horas registradas por día",
+       x = "Día",
+       y = "Hora (seg)") +
+  theme_minimal()
+
+```
+
+```{r}
+cuentas <- gen%>%count(autor) %>% arrange(desc(n))
+cuentas$autor <- factor(cuentas$autor, levels = cuentas$autor)
+cuentas <- cuentas[cuentas$n >70,]
+ggplot(cuentas, aes(x = autor, y = n)) +
+  geom_col(fill = "darkorange", color="black") +
+  labs(title = "Mayor cantidad de mensajes",
+       x = "Autores",
+       y = "Número de mensajes") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 30, hjust = 0.8))
+```
+
+```{r}
+cuentas <- gen%>%count(hour(hora)) %>% arrange(desc(n))
+ggplot(cuentas, aes(x = `hour(hora)`, y = n)) +
+  geom_col(fill = "steelblue", color="blue") +
+  labs(title = "Cantidad de mensajes por hora del día",
+       x = "Horas",
+       y = "Número de mensajes") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 30, hjust = 0.8))
+```
+
+```{r}
+cuentas <- gen %>%
+  group_by(autor) %>%
+  summarise(promedio_hora = mean(hora), 
+            minimo_hora = min(hora),
+            maximo_hora = max(hora),
+            rango_hora = max(hora) - min(hora)) %>% 
+  arrange(rango_hora, minimo_hora)
+cuentas$autor <- factor(cuentas$autor, levels = cuentas$autor)
+ggplot(cuentas, aes(y = autor, x = promedio_hora/3600)) +
+  geom_point(color = "darkblue") +
+  geom_point(aes(x = minimo_hora/3600), color = "lightblue4") +
+  geom_point(aes(x = maximo_hora/3600), color = "lightblue4") +
+  labs(title = "Margen de horas",
+       x = "Hora",
+       y = "Autor") +
+  
+  theme_minimal()
+```
+
+```{r}
+cuentas <- gen %>%
+  group_by(autor) %>%
+  summarise(promedio_hora = mean(dia), 
+            minimo_hora = min(dia),
+            maximo_hora = max(dia),
+            rango_hora = max(dia) - min(dia)) %>% 
+  arrange(rango_hora, minimo_hora)
+cuentas$autor <- factor(cuentas$autor, levels = cuentas$autor)
+ggplot(cuentas, aes(y = autor, x = promedio_hora)) +
+  geom_point(color = "darkblue") +
+  geom_point(aes(x = minimo_hora), color = "lightblue4") +
+  geom_point(aes(x = maximo_hora), color = "lightblue4") +
+  labs(title = "Margen de días",
+       x = "Día",
+       y = "Autor") +
+  
+  theme_minimal()
+```
+
+```{r}
+cuentas <- gen %>% group_by(autor) %>% 
+  summarise(m_editados = sum(editado)) %>% 
+  arrange(desc(m_editados))
+cuentas <- cuentas[cuentas$m_editados >0,]
+cuentas$autor <- factor(cuentas$autor, levels = cuentas$autor)
+ggplot(cuentas, aes(x = autor, y = m_editados)) +
+  geom_col(fill = "darkorange", color="black") +
+  labs(title = "Mayor cantidad de mensajes editados",
+       x = "Autores",
+       y = "Número de mensajes editados") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 30, hjust = 0.8))
+
+```
+
+# Mapa de palabras
+
+```{r}
+palabras <- gen$mensaje
+mensajes_clean <- gsub("[[:punct:]]", "", tolower(palabras))
+totales <- data.frame(palabras = unlist(strsplit(mensajes_clean, "\\s+")))
+cuentas <- totales %>% count(palabras)
+
+cuentas <- cuentas[cuentas$n > 8,]
+```
+
+```{r}
+library(wordcloud)
+library(RColorBrewer)
+
+wordcloud(words = cuentas$palabras,
+          freq = cuentas$n,
+          min.freq = 1,
+          colors = brewer.pal(8, "Dark2"),
+          random.order = FALSE)
+```
+
+
 

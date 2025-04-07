@@ -73,6 +73,7 @@ scrapW <- function(name){
   # Añadir la columna de editado
   datos <- datos %>% mutate(editado = grepl("<Se editó este mensaje.>", datos$mensaje))
   datos$mensaje <- gsub("<Se editó este mensaje.>", "", datos$mensaje)
-  
+  datos <- datos[datos$mensaje != "",]
+  rownames(datos) <- NULL
   return(datos)
 }
