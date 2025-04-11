@@ -22,12 +22,16 @@ herra <- scrapT("herraII_08-07-24")
 ```
 
 ```{r, warning=FALSE}
-ggplot(gen, aes(x = dia)) +
-  geom_histogram(binwidth = 28, fill = "pink3", color = "red") +
-  labs(title = "Histograma de días",
-       x = "Horas",
+cuentas <- gen %>%
+  mutate(mes = floor_date(as.Date(dia), "month")) %>%
+  count(mes)
+
+ggplot(cuentas, aes(x = mes, y = n)) +
+  geom_col(fill = "pink3", color = "red") +
+  labs(title = "Cantidad de mensajes por mes",
+       x = "Mes",
        y = "Frecuencia") +
-  theme_minimal() 
+  theme_minimal()
 
 ```
 
@@ -66,42 +70,21 @@ ggplot(cuentas, aes(x = `hour(hora)`, y = n)) +
 ```
 
 ```{r}
-cuentas <- gen %>%
+copia <- gen
+rangos <- gen %>%
   group_by(autor) %>%
-  summarise(promedio_hora = mean(hora), 
-            minimo_hora = min(hora),
-            maximo_hora = max(hora),
-            rango_hora = max(hora) - min(hora)) %>% 
-  arrange(rango_hora, minimo_hora)
-cuentas$autor <- factor(cuentas$autor, levels = cuentas$autor)
-ggplot(cuentas, aes(y = autor, x = promedio_hora/3600)) +
-  geom_point(color = "darkblue") +
-  geom_point(aes(x = minimo_hora/3600), color = "lightblue4") +
-  geom_point(aes(x = maximo_hora/3600), color = "lightblue4") +
-  labs(title = "Margen de horas",
+  summarise(rango = max(hora) - min(hora)) %>%
+  arrange(rango)
+
+# Reordenar el factor 'autor' según el rango
+copia$autor <- factor(gen$autor, levels = rangos$autor)
+
+# Graficar boxplot
+ggplot(copia, aes(y = autor, x = hora / 3600)) +
+  geom_boxplot(fill = "lightblue", color = "darkblue") +
+  labs(title = "Distribución de horas por autor (ordenado por rango)",
        x = "Hora",
        y = "Autor") +
-  
-  theme_minimal()
-```
-
-```{r}
-cuentas <- gen %>%
-  group_by(autor) %>%
-  summarise(promedio_hora = mean(dia), 
-            minimo_hora = min(dia),
-            maximo_hora = max(dia),
-            rango_hora = max(dia) - min(dia)) %>% 
-  arrange(rango_hora, minimo_hora)
-cuentas$autor <- factor(cuentas$autor, levels = cuentas$autor)
-ggplot(cuentas, aes(y = autor, x = promedio_hora)) +
-  geom_point(color = "darkblue") +
-  geom_point(aes(x = minimo_hora), color = "lightblue4") +
-  geom_point(aes(x = maximo_hora), color = "lightblue4") +
-  labs(title = "Margen de días",
-       x = "Día",
-       y = "Autor") +
-  
   theme_minimal()
 ```
 
