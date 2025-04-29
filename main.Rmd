@@ -21,6 +21,7 @@ gen <- scrapW("genfiltrada")
 herra <- scrapT("herraII_08-07-24")
 ```
 
+# Gráficos
 ```{r, warning=FALSE}
 cuentas <- gen %>%
   mutate(mes = floor_date(as.Date(dia), "month")) %>%
@@ -105,24 +106,147 @@ ggplot(cuentas, aes(x = autor, y = m_editados)) +
 ```
 
 # Mapa de palabras
-
 ```{r}
 palabras <- gen$mensaje
 mensajes_clean <- gsub("[[:punct:]]", "", tolower(palabras))
 totales <- data.frame(palabras = unlist(strsplit(mensajes_clean, "\\s+")))
 cuentas <- totales %>% count(palabras)
-
-cuentas <- cuentas[cuentas$n > 8,]
 ```
 
 ```{r}
 wordcloud(words = cuentas$palabras,
           freq = cuentas$n,
-          min.freq = 1,
+          min.freq = 8,
           colors = colorRampPalette(brewer.pal(8, "Dark2"))(50),
           random.order = FALSE)
 ```
 
+# Preparación para clusterización
+Se hará un caso puro sin eliminación y el otro caso con selección
+## Selección de mensajes significativos
+Los mensajes significativos serán todos aquellos que no tengan stickers, 
+imágenes, documentos etc. Todos estos mensajes deberían ser completamente
+inútiles para un análisis, puesto que solo contienen eso.
 
+```{r}
+copia <- gen
+copia <- copia %>%
+  filter(!grepl("sticker omitido|imagen omitida|Se eliminó este mensaje|documento omitido|Cambió tu código de seguridad|Video omitido|añadió|https|usando el enlace de invitación|eliminó|cambió su número de teléfono", mensaje))
+```
+Se deciden eliminar los links puesto que después de una revisión manual son muy 
+pocos los casos significativos 
 
+## Eliminación de encuestas 
+```{r}
+copia <- copia %>% 
+  filter(!grepl("ENCUESTA:|OPCIÓN:", mensaje))
+```
 
+## Eliminación del autor Gen Filtrada
+```{r}
+copia <- copia[copia$autor != 'Gen Filtrada',]
+```
+
+## Tokenización de las palabras
+```{r}
+tokens <- copia %>%
+  unnest_tokens(palabras, mensaje)
+```
+
+## Eliminación de las menciones (@numtelefono) y enteros
+```{r}
+tokens <- tokens %>%
+  filter(!grepl("^\\d+$", palabras))
+```
+
+## Eliminación de palabras monótonas
+```{r}
+palabras <- copia$mensaje
+mensajes_clean <- gsub("[[:punct:]]", "", tolower(palabras))
+totales <- data.frame(palabras = unlist(strsplit(mensajes_clean, "\\s+")))
+cuentas <- totales %>% count(palabras)
+```
+
+### Mapeo de palabras con eliminaciones
+```{r, warning=FALSE}
+wordcloud(words = cuentas$palabras,
+          freq = cuentas$n,
+          min.freq = 10,
+          colors = colorRampPalette(brewer.pal(8, "Dark2"))(50),
+          random.order = FALSE)
+```
+
+### Eliminación de palabras más repetidas sin sentimiento (43 veces o más)
+```{r}
+cuentas <- cuentas[cuentas$n >= 43,]
+cuentas <- cuentas %>% mutate(get_nrc_sentiment(palabras, lang="spanish"))
+```
+
+```{r}
+cuentas %>%
+  summarise(across(3:ncol(.), sum, na.rm = TRUE))
+```
+Al no haber sentimientos, se pueden optar por remover en este caso. 
+
+```{r}
+tokens <- tokens %>%
+  anti_join(cuentas, by = "palabras")
+```
+
+### Visualización después de eliminación
+```{r}
+palabras <- tokens$palabras
+mensajes_clean <- gsub("[[:punct:]]", "", tolower(palabras))
+totales <- data.frame(palabras = unlist(strsplit(mensajes_clean, "\\s+")))
+cuentas <- totales %>% count(palabras)
+```
+
+```{r, warning=FALSE}
+wordcloud(words = cuentas$palabras,
+          freq = cuentas$n,
+          min.freq = 8,
+          scale = c(1.8, 0.2),
+          colors = colorRampPalette(brewer.pal(8, "Dark2"))(50),
+          random.order = FALSE)
+```
+
+# Modelos
+## Modelo original (sin eliminación)
+```{r}
+mdl_o <- gen %>%
+  unnest_tokens(palabras, mensaje)
+```
+
+## Modelo filtrado (con eliminación)
+Se puede notar una reducción de la mitad de las observaciones
+```{r}
+mdl_s <- tokens
+```
+
+### Acomodo del ambiente
+```{r}
+rm(copia, 
+   cuentas,
+   rangos, 
+   tokens, 
+   totales,
+   palabras,
+   mensajes_clean)
+```
+
+## Sentimientos de los modelos
+```{r}
+mdl_o <- mdl_o %>% mutate(get_nrc_sentiment(palabras, lang="spanish"))
+mdl_s <- mdl_s %>% mutate(get_nrc_sentiment(palabras, lang="spanish"))
+```
+
+## Sentimientos generales
+```{r}
+mdl_o %>%
+  summarise(across(6:ncol(.), sum, na.rm = TRUE))
+```
+
+```{r}
+mdl_s %>%
+  summarise(across(6:ncol(.), sum, na.rm = TRUE))
+```

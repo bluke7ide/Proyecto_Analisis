@@ -7,7 +7,9 @@ pacman::p_load(
   tidyverse,
   reticulate,
   wordcloud,
-  RColorBrewer
+  RColorBrewer,
+  tidytext,
+  syuzhet
 )
 
 # Scripts de R ------------------------------------------------------------
