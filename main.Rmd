@@ -129,8 +129,9 @@ imágenes, documentos etc. Todos estos mensajes deberían ser completamente
 inútiles para un análisis, puesto que solo contienen eso.
 
 ```{r}
-copia <- gen
-copia <- copia %>%
+gen_c <- gen
+gen_c$id <- 1:3675
+copia <- gen_c %>%
   filter(!grepl("sticker omitido|imagen omitida|Se eliminó este mensaje|documento omitido|Cambió tu código de seguridad|Video omitido|añadió|https|usando el enlace de invitación|eliminó|cambió su número de teléfono", mensaje))
 ```
 Se deciden eliminar los links puesto que después de una revisión manual son muy 
@@ -213,7 +214,7 @@ wordcloud(words = cuentas$palabras,
 # Modelos
 ## Modelo original (sin eliminación)
 ```{r}
-mdl_o <- gen %>%
+mdl_o <- gen_c %>%
   unnest_tokens(palabras, mensaje)
 ```
 
@@ -250,3 +251,38 @@ mdl_o %>%
 mdl_s %>%
   summarise(across(6:ncol(.), sum, na.rm = TRUE))
 ```
+
+```{r}
+mdl_o <- gen_c %>% mutate(
+  mdl_o %>%
+  group_by(id) %>%
+  summarise(across(anger:sadness, sum), .groups = "drop")
+)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
