@@ -244,12 +244,12 @@ mdl_s <- mdl_s %>% mutate(get_nrc_sentiment(palabras, lang="spanish"))
 ## Sentimientos generales
 ```{r}
 mdl_o %>%
-  summarise(across(6:ncol(.), sum, na.rm = TRUE))
+  summarise(across(7:ncol(.), sum, na.rm = TRUE))
 ```
 
 ```{r}
 mdl_s %>%
-  summarise(across(6:ncol(.), sum, na.rm = TRUE))
+  summarise(across(7:ncol(.), sum, na.rm = TRUE))
 ```
 
 ## Agrupación por mensajes de nuevo
@@ -298,55 +298,115 @@ rm(ind_o,
 ```
 
 ```{r}
-colocar <- function(ind, centroids){
+colocar <- function(ind, centroids, past){
   dist <- sapply(1:nrow(centroids), function(x) sum((centroids[x,] - ind)^2))
   posibles <- which(dist == min(dist))
-  return(posibles[sample(length(posibles),1)])
+  if(length(posibles) == 1){
+    return(posibles[1])
+  } else if(sum(posibles == past) > 0){
+    return(past)
+  } else {
+    return(posibles[1])
+  }
 }
 ```
 
 ```{r}
 kmeans <- function(nodes, df){
   len <- nrow(df)
-  iniciales <- sample(len, nodes)
+  ids <- sample(len, nodes)
   val <- df[,7:16]
-  centr <- val[iniciales,]
+  centr <- val[ids,]
   clusters <- rep(0, len)
+  clusters[ids] <- 1:nodes
   past <- clusters
   numiter <- 0
   while(numiter < 100){
-    clusters <- sapply(1:len, function(x) colocar(val[x,],centr))
-    centr <- t(sapply(1:nodes, function(x) 
-      sapply(1:9, function (y) median(val[clusters == x, y]))
-    ))
-    print(abs(sum(clusters-past)))
-    if(abs(sum(clusters-past)) == 0){
+    clusters <- sapply(1:len, function(x) colocar(val[x,],centr, past[x]))
+    # print(abs(sum(clusters!=past)))
+    if(abs(sum(clusters!=past)) == 0){
       break
     } else{
       past <- clusters
     }
     numiter <- numiter + 1
+    new_centr <- t(sapply(1:nodes, function(x) 
+      sapply(1:9, function (y) mean(val[clusters == x, y]))
+    ))
+    # new_centr <- sapply(1:nodes, function(x) colocar(new_centr[x,], val[clusters == x, ], 0))
+    # centr <- t(sapply(1:nodes, function(x) val[clusters == x, ][new_centr[x],]))
+    centr <- new_centr
+    ids <- sapply(1:nodes, function(x) df[clusters == x, 6][new_centr[x]])
   }
-  return(clusters)
+  return(centr)
 }
 ```
 
 ```{r}
 t <- proc.time()
-clusters <- 6
-prueba <- kmeans(clusters, mdl_3)
-proc.time() -t
+clusters <- 4
+res <- kmeans(clusters, mdl_4)
+proc.time() - t
+Q <- res[[1]]
+centr <- res[[2]]
 ```
 
 ## Resumen clusters
 ```{r}
-sapply(1:clusters, function(x) colSums(mdl_3[prueba == x,7:16]))
+sapply(1:clusters, function(x) colSums(mdl_3[Q == x,7:16]))
 ```
 
 ```{r}
-sapply(1:clusters, function(x) sum(prueba == x))
+sapply(1:clusters, function(x) sum(Q == x))
 ```
 
+```{r}
+kmeans_par <- function(n, clst, mdl_4, cores) {
+  cl <- makeCluster(cores) 
+  clusterExport(
+    cl,
+    varlist = c("clusters", "mdl_4", "kmeans", "colocar"),
+    envir = environment())
+  resultados <- parSapply(cl, 1:n, function(x) kmeans(clst, mdl_4))
+  stopCluster(cl)
+  return(resultados)
+}
+```
+
+```{r}
+t <- proc.time()
+clusters <- 5
+res5 <- kmeans_par(100, clusters, mdl_4, 5)
+proc.time() - t
+```
+
+```{r}
+centr <- sapply(data.frame(res4), function(x) sort(x))
+df <- t(centr)
+df <- apply(df, 1, paste, collapse = "-")
+(tabla <- sort(table(df), decreasing = TRUE))
+```
+
+```{r}
+wcss <- function(nodes, df){
+  res <- kmeans(i, df)
+  points_c <- sapply(1:nodes, function(x) sum(res[[1]] == x))
+  wcss <- sum(sapply(1:nodes, function(x) sum(sapply(
+    1:points_c[x], function(y) sum((df[res[[1]] == x, 7:16][y,] - res[[2]][x,])^2)
+  ))))
+  return(wcss)
+}
+```
+
+```{r}
+t <- proc.time()
+metrica <- rep(0, 10)
+for(i in 1:10){
+  print(i)
+  metrica[i] <- wcss(i, mdl_4)
+}
+proc.time() - t
+```
 
 
 

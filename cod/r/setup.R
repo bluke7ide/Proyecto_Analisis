@@ -9,7 +9,8 @@ pacman::p_load(
   wordcloud,
   RColorBrewer,
   tidytext,
-  syuzhet
+  syuzhet,
+  parallel
 )
 
 # Scripts de R ------------------------------------------------------------
