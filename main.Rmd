@@ -59,7 +59,7 @@ ggplot(cuentas, aes(x = autor, y = n)) +
   theme(axis.text.x = element_text(angle = 30, hjust = 0.8))
 ```
 
-```{r}
+```{r, warning =FALSE}
 cuentas <- gen%>%count(hour(hora)) %>% arrange(desc(n))
 ggplot(cuentas, aes(x = `hour(hora)`, y = n)) +
   geom_col(fill = "steelblue", color="blue") +
@@ -183,7 +183,7 @@ cuentas <- cuentas[cuentas$n >= 43,]
 cuentas <- cuentas %>% mutate(get_nrc_sentiment(palabras, lang="spanish"))
 ```
 
-```{r}
+```{r, warning =FALSE}
 cuentas %>%
   summarise(across(3:ncol(.), sum, na.rm = TRUE))
 ```
@@ -252,20 +252,100 @@ mdl_s %>%
   summarise(across(6:ncol(.), sum, na.rm = TRUE))
 ```
 
+## Agrupación por mensajes de nuevo
 ```{r}
-mdl_o <- gen_c %>% mutate(
-  mdl_o %>%
+mdl_o <- mdl_o %>%
   group_by(id) %>%
-  summarise(across(anger:sadness, sum), .groups = "drop")
-)
+  summarise(across(anger:positive, sum), .groups = "drop")
+
+mdl_s <- mdl_s %>%
+  group_by(id) %>%
+  summarise(across(anger:positive, sum), .groups = "drop")
 ```
 
+```{r}
+mdl_o <- inner_join(gen_c, mdl_o, by = join_by(id))
+mdl_s <- inner_join(gen_c, mdl_s, by = join_by(id))
+```
 
+Hay menos mensajes en el original puesto que los emojis solos no se tokenizan.
 
+```{r}
+rm(gen_c)
+```
 
+# Clusterización
+## Eliminación de las variables no significativas (sin sentimientos)
+Se procederá a dividir los modelos más, un lado sin los sentimientos en 0
 
+```{r}
+ind_o <- rowSums(mdl_o[,7:15] != 0) != 0
+ind_s <- rowSums(mdl_s[,7:15] != 0) != 0
+```
 
+```{r}
+mdl_1 <- mdl_o
+mdl_2 <- mdl_s
+mdl_3 <- mdl_o[ind_o,]
+mdl_4 <- mdl_s[ind_s,]
+```
 
+```{r}
+rm(ind_o,
+   ind_s,
+   mdl_o,
+   mdl_s)
+```
+
+```{r}
+colocar <- function(ind, centroids){
+  dist <- sapply(1:nrow(centroids), function(x) sum((centroids[x,] - ind)^2))
+  posibles <- which(dist == min(dist))
+  return(posibles[sample(length(posibles),1)])
+}
+```
+
+```{r}
+kmeans <- function(nodes, df){
+  len <- nrow(df)
+  iniciales <- sample(len, nodes)
+  val <- df[,7:16]
+  centr <- val[iniciales,]
+  clusters <- rep(0, len)
+  past <- clusters
+  numiter <- 0
+  while(numiter < 100){
+    clusters <- sapply(1:len, function(x) colocar(val[x,],centr))
+    centr <- t(sapply(1:nodes, function(x) 
+      sapply(1:9, function (y) median(val[clusters == x, y]))
+    ))
+    print(abs(sum(clusters-past)))
+    if(abs(sum(clusters-past)) == 0){
+      break
+    } else{
+      past <- clusters
+    }
+    numiter <- numiter + 1
+  }
+  return(clusters)
+}
+```
+
+```{r}
+t <- proc.time()
+clusters <- 6
+prueba <- kmeans(clusters, mdl_3)
+proc.time() -t
+```
+
+## Resumen clusters
+```{r}
+sapply(1:clusters, function(x) colSums(mdl_3[prueba == x,7:16]))
+```
+
+```{r}
+sapply(1:clusters, function(x) sum(prueba == x))
+```
 
 
 
