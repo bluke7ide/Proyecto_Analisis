@@ -297,6 +297,7 @@ rm(ind_o,
    mdl_s)
 ```
 
+## Funciones de kmeans
 ```{r}
 colocar <- function(ind, centroids, past){
   dist <- sapply(1:nrow(centroids), function(x) sum((centroids[x,] - ind)^2))
@@ -323,7 +324,7 @@ kmeans <- function(nodes, df){
   numiter <- 0
   while(numiter < 100){
     clusters <- sapply(1:len, function(x) colocar(val[x,],centr, past[x]))
-    # print(abs(sum(clusters!=past)))
+    print(abs(sum(clusters!=past)))
     if(abs(sum(clusters!=past)) == 0){
       break
     } else{
@@ -338,28 +339,30 @@ kmeans <- function(nodes, df){
     centr <- new_centr
     ids <- sapply(1:nodes, function(x) df[clusters == x, 6][new_centr[x]])
   }
-  return(centr)
+  return(list(clusters, centr))
 }
 ```
 
+### Prueba de algoritmo
 ```{r}
 t <- proc.time()
-clusters <- 4
-res <- kmeans(clusters, mdl_4)
+clusters <- 5
+prueba_kmeans <- kmeans(clusters, mdl_4)
 proc.time() - t
-Q <- res[[1]]
-centr <- res[[2]]
+Q <- prueba_kmeans[[1]]
+centr <- prueba_kmeans[[2]]
 ```
 
 ## Resumen clusters
 ```{r}
-sapply(1:clusters, function(x) colSums(mdl_3[Q == x,7:16]))
+sapply(1:clusters, function(x) colSums(mdl_4[Q == x,7:16]))
 ```
 
 ```{r}
 sapply(1:clusters, function(x) sum(Q == x))
 ```
 
+## Paralelización de la función
 ```{r}
 kmeans_par <- function(n, clst, mdl_4, cores) {
   cl <- makeCluster(cores) 
@@ -373,6 +376,8 @@ kmeans_par <- function(n, clst, mdl_4, cores) {
 }
 ```
 
+### Prueba algoritmo 
+Requiere cambiar los returns para solo obtener los índices de los clusters
 ```{r}
 t <- proc.time()
 clusters <- 5
@@ -380,6 +385,7 @@ res5 <- kmeans_par(100, clusters, mdl_4, 5)
 proc.time() - t
 ```
 
+### Obtener el set de clusters moda
 ```{r}
 centr <- sapply(data.frame(res4), function(x) sort(x))
 df <- t(centr)
@@ -387,6 +393,7 @@ df <- apply(df, 1, paste, collapse = "-")
 (tabla <- sort(table(df), decreasing = TRUE))
 ```
 
+## Obtención de la clusterización óptima
 ```{r}
 wcss <- function(nodes, df){
   res <- kmeans(i, df)
@@ -406,6 +413,16 @@ for(i in 1:10){
   metrica[i] <- wcss(i, mdl_4)
 }
 proc.time() - t
+```
+
+```{r}
+ggplot(data.frame(x = 1:10, y = metrica), aes(x = x, y = y)) + 
+  geom_line() + 
+  geom_point() +
+  theme_minimal() + 
+  labs(title = "Métrica WCSS", 
+       x = "clusters",
+       y = "WCSS")
 ```
 
 
