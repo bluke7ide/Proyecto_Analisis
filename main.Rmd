@@ -237,8 +237,10 @@ rm(copia,
 
 ## Sentimientos de los modelos
 ```{r}
+t <- proc.time()
 mdl_o <- mdl_o %>% mutate(get_nrc_sentiment(palabras, lang="spanish"))
 mdl_s <- mdl_s %>% mutate(get_nrc_sentiment(palabras, lang="spanish"))
+# proc.time() - t
 ```
 
 ## Sentimientos generales
@@ -381,15 +383,26 @@ Requiere cambiar los returns para solo obtener los índices de los clusters
 ```{r}
 t <- proc.time()
 clusters <- 5
-res5 <- kmeans_par(100, clusters, mdl_4, 5)
+res5 <- kmeans_par(10, clusters, mdl_4, 5)
 proc.time() - t
 ```
 
-### Obtener el set de clusters moda
+### Guardar resultados
 ```{r}
-centr <- sapply(data.frame(res4), function(x) sort(x))
-df <- t(centr)
-df <- apply(df, 1, paste, collapse = "-")
+# write.csv(res2, "res/res2.csv")
+# write.csv(res3, "res/res3.csv")
+# write.csv(res4, "res/res4.csv")
+# write.csv(res5, "res/res5.csv")
+```
+
+
+### Obtener el set de clusters moda
+
+```{r}
+vec <- as.vector(sapply(data.frame(res5), function(x) x[[2]]))
+# centr <- sapply(data.frame(res5), function(x) sort(x))
+# df <- t(centr)
+df <- apply(mtx, 1, paste, collapse = "-")
 (tabla <- sort(table(df), decreasing = TRUE))
 ```
 
