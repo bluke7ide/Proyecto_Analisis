@@ -145,9 +145,9 @@ copia <- copia %>%
   filter(!grepl("ENCUESTA:|OPCIÓN:", mensaje))
 ```
 
-## Eliminación del autor Gen Filtrada
+## Eliminación del autor de control de Whatsapp
 ```{r}
-copia <- copia[copia$autor != 'Gen Filtrada',]
+copia <- copia[copia$autor != 'Autor 0',]
 ```
 
 ## Tokenización de las palabras
@@ -386,17 +386,15 @@ t <- proc.time()
 clusters <- 5
 prueba_kmeans <- kmeans(clusters, mdl_4)
 proc.time() - t
-Q <- prueba_kmeans[[1]]
-centr <- prueba_kmeans[[2]]
 ```
 
 ### Resumen clusters
 ```{r}
-sapply(1:clusters, function(x) colSums(mdl_4[Q == x,7:16]))
+sapply(1:clusters, function(x) colSums(mdl_4[prueba_kmeans[[1]] == x,7:16]))
 ```
 
 ```{r}
-sapply(1:clusters, function(x) sum(Q == x))
+sapply(1:clusters, function(x) sum(prueba_kmeans[[1]] == x))
 ```
 
 ### Prueba de kmedians
@@ -409,7 +407,7 @@ proc.time() - t
 
 De este se pueden sacar las observaciones que son centroides para su interpretación
 ```{r}
-mdl_4[mdl_4$id == prueba_kmedians[[3]], 5]
+sapply(1:clusters, function(x) mdl_4[mdl_4$id == prueba_kmedians[[3]][x], 4])
 ```
 
 ### Paralelización de las funciones
@@ -428,7 +426,7 @@ kmeans_par <- function(n, clst, mdl, cores) {
 ```
 
 ```{r}
-kmedians_par <- function(n, clst, mdl_4, cores) {
+kmedians_par <- function(n, clst, mdl, cores) {
   cl <- makeCluster(cores) 
   clusterExport(
     cl,
@@ -444,24 +442,15 @@ kmedians_par <- function(n, clst, mdl_4, cores) {
 ```{r}
 t <- proc.time()
 clusters <- 5
-res5 <- kmedians_par(10, clusters, mdl_4, 5)
+res5 <- kmedians_par(1000, clusters, mdl_4, 6)
 proc.time() - t
-```
-
-### Guardar resultados
-```{r}
-# write.csv(res2, "res/res2.csv")
-# write.csv(res3, "res/res3.csv")
-# write.csv(res4, "res/res4.csv")
-# write.csv(res5, "res/res5.csv")
+write.csv(res5, "res/res5.csv")
 ```
 
 ### Obtener el set de clusters moda para kmedians
 ```{r}
-vec <- as.vector(sapply(data.frame(res5), function(x) x[[3]]))
-# centr <- sapply(data.frame(res5), function(x) sort(x))
-# df <- t(centr)
-df <- apply(mtx, 1, paste, collapse = "-")
+centr <- t(sapply(data.frame(res5), function(x) sort(x)))
+df <- apply(centr, 1, paste, collapse = "-")
 (tabla <- sort(table(df), decreasing = TRUE))
 ```
 
@@ -491,17 +480,17 @@ for(i in 1:10){
   metrica$mdl4[i] <- wcss(i, mdl_4)
 }
 proc.time() - t
-# write.csv(metrica, "res/metrica.csv")
-```
-
-
-```{r}
-metrica_mean$x <- 1:10
-metrica_mean <- metrica_mean %>%
+metrica$x <- 1:10
+metrica <- metrica %>%
   pivot_longer(cols = starts_with("mdl"), 
                names_to = "modelo", 
                values_to = "valor")
-ggplot(metrica_mean, aes(x = x, y = valor, color = modelo)) +
+metrica_median <- metrica
+write.csv(metrica_median, "res/metrica_median.csv")
+```
+
+```{r}
+fig <- ggplot(metrica_mean, aes(x = x, y = valor, color = modelo)) +
   geom_line() +
   geom_point(show.legend = FALSE) +  
   scale_color_manual(values = c("mdl1" = "darkorange", 
@@ -513,13 +502,34 @@ ggplot(metrica_mean, aes(x = x, y = valor, color = modelo)) +
                                 "mdl3" = "Modelo 3", 
                                 "mdl4" = "Modelo 4")) +
   theme_minimal() +
-  labs(title = "Métrica WCSS con medias", 
-       x = "clusters",
+  labs(x = "clusters",
        y = "WCSS",
        color = "Modelos") +
   theme(legend.position = "right")
+ggsave("res/kmeans.pdf", fig, width = 6, height = 4)
+
 ```
 
+```{r}
+fig <- ggplot(metrica_median, aes(x = x, y = valor, color = modelo)) +
+  geom_line() +
+  geom_point(show.legend = FALSE) +  
+  scale_color_manual(values = c("mdl1" = "darkorange", 
+                                "mdl2" = "cyan", 
+                                "mdl3" = "red", 
+                                "mdl4" = "blue"), 
+                     labels = c("mdl1" = "Modelo 1", 
+                                "mdl2" = "Modelo 2", 
+                                "mdl3" = "Modelo 3", 
+                                "mdl4" = "Modelo 4")) +
+  theme_minimal() +
+  labs(x = "clusters",
+       y = "WCSS",
+       color = "Modelos") +
+  theme(legend.position = "right")
+
+ggsave("res/kmedians.pdf", fig, width = 6, height = 4)
+```
 
 
 
