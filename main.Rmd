@@ -447,11 +447,33 @@ proc.time() - t
 write.csv(res5, "res/res5.csv")
 ```
 
-### Obtener el set de clusters moda para kmedians
+### Obtener el set de centroides moda para kmedians
 ```{r}
 centr <- t(sapply(data.frame(res5), function(x) sort(x)))
 df <- apply(centr, 1, paste, collapse = "-")
-(tabla <- sort(table(df), decreasing = TRUE))
+tabla <- sort(table(df), decreasing = TRUE)
+tabla[tabla>5]
+```
+
+### Obtener los centroides moda para kmedians
+```{r}
+tabla <- sort(table(as.vector(res5)), decreasing = T)
+tabla[tabla>100]
+```
+
+### Recuperación de los clusters
+```{r}
+indices <- c(2,41,98,142,373)
+centr <- t(sapply(1:5, function(x) mdl_4[mdl_4$id == indices[x], 7:16]))
+clusters <- sapply(1:640, function(x) colocar(mdl_4[x,7:16], centr, 0))
+```
+
+```{r}
+sapply(1:5, function(x) colSums(mdl_4[clusters == x,7:16]))
+```
+
+```{r}
+sapply(1:5, function(x) sum(clusters == x))
 ```
 
 ## Obtención de la clusterización óptima por medio del método del codo
