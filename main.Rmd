@@ -86,8 +86,7 @@ copia$autor <- factor(gen$autor, levels = rangos$autor)
 # Graficar boxplot
 ggplot(copia, aes(y = autor, x = hora / 3600)) +
   geom_boxplot(fill = "lightblue", color = "darkblue") +
-  labs(title = "Distribución de horas por autor (ordenado por rango)",
-       x = "Hora",
+  labs(x = "Hora",
        y = "Autor") +
   theme_minimal()
 ```
