@@ -27,20 +27,21 @@ cuentas <- gen %>%
   mutate(mes = floor_date(as.Date(dia), "month")) %>%
   count(mes)
 
+# Gráfico con la cantidad de mensajes por mes y año
 ggplot(cuentas, aes(x = mes, y = n)) +
-  geom_col(fill = "pink3", color = "red") +
-  labs(title = "Cantidad de mensajes por mes",
-       x = "Mes",
+  geom_line(color = "salmon", size = 1) +
+  geom_point(color = "salmon", size = 2) + 
+  labs(x = "Mes-Año",
        y = "Frecuencia") +
   theme_minimal()
 
 ```
 
 ```{r}
+# Gráfico con las horas registradas por día
 ggplot(gen, aes(x = dia, y = hora)) +
   geom_point(color = "darkblue", alpha = 0.6) +
-  labs(title = "Horas registradas por día",
-       x = "Día",
+  labs(x = "Día",
        y = "Hora (seg)") +
   theme_minimal()
 
@@ -50,10 +51,11 @@ ggplot(gen, aes(x = dia, y = hora)) +
 cuentas <- gen%>%count(autor) %>% arrange(desc(n))
 cuentas$autor <- factor(cuentas$autor, levels = cuentas$autor)
 cuentas <- cuentas[cuentas$n >70,]
+
+# Gráfico con el top de autores con más mensajes
 ggplot(cuentas, aes(x = autor, y = n)) +
   geom_col(fill = "darkorange", color="black") +
-  labs(title = "Mayor cantidad de mensajes",
-       x = "Autores",
+  labs(x = "Autores",
        y = "Número de mensajes") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 30, hjust = 0.8))
@@ -61,10 +63,11 @@ ggplot(cuentas, aes(x = autor, y = n)) +
 
 ```{r, warning =FALSE}
 cuentas <- gen%>%count(hour(hora)) %>% arrange(desc(n))
+
+# Gráfico con la cantidad de mensajes por hora
 ggplot(cuentas, aes(x = `hour(hora)`, y = n)) +
-  geom_col(fill = "steelblue", color="blue") +
-  labs(title = "Cantidad de mensajes por hora del día",
-       x = "Horas",
+  geom_col(fill = "steelblue", color="darkblue") +
+  labs(x = "Horas",
        y = "Número de mensajes") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 30, hjust = 0.8))
