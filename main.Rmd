@@ -203,12 +203,17 @@ cuentas <- totales %>% count(palabras)
 ```
 
 ```{r, warning=FALSE}
+pdf("res/wordcloud.pdf", width = 8, height = 6)
+
 wordcloud(words = cuentas$palabras,
           freq = cuentas$n,
           min.freq = 8,
           scale = c(1.8, 0.2),
           colors = colorRampPalette(brewer.pal(8, "Dark2"))(50),
           random.order = FALSE)
+
+dev.off()
+
 ```
 
 # Modelos
@@ -420,18 +425,29 @@ wcss <- function(nodes, df){
 
 ```{r}
 t <- proc.time()
-metrica <- rep(0, 10)
+metrica <- data.frame(mdl1 = rep(0,10),
+                      mdl2 = rep(0,10),
+                      mdl3 = rep(0,10),
+                      mdl4 = rep(0,10))
 for(i in 1:10){
   print(i)
-  metrica[i] <- wcss(i, mdl_4)
+  metrica$mdl1[i] <- wcss(i, mdl_1)
+  metrica$mdl2[i] <- wcss(i, mdl_2)
+  metrica$mdl3[i] <- wcss(i, mdl_3)
+  metrica$mdl4[i] <- wcss(i, mdl_4)
 }
 proc.time() - t
+# write.csv(metrica, "res/metrica.csv")
 ```
 
+
 ```{r}
-ggplot(data.frame(x = 1:10, y = metrica), aes(x = x, y = y)) + 
-  geom_line() + 
-  geom_point() +
+metrica$x <- 1:10
+ggplot(metrica, aes(x = x)) + 
+  geom_line(aes(y=mdl1)) + 
+  geom_line(aes(y=mdl2)) +
+  geom_line(aes(y=mdl3)) +
+  geom_line(aes(y=mdl4), color = "blue") +
   theme_minimal() + 
   labs(title = "Métrica WCSS", 
        x = "clusters",
