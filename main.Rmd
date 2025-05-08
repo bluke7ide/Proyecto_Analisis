@@ -304,7 +304,7 @@ rm(ind_o,
    mdl_s)
 ```
 
-## Funciones de kmeans
+## Funciones de clusterización
 ```{r}
 colocar <- function(ind, centroids, past){
   dist <- sapply(1:nrow(centroids), function(x) sum((centroids[x,] - ind)^2))
@@ -319,6 +319,7 @@ colocar <- function(ind, centroids, past){
 }
 ```
 
+### Kmeans
 ```{r}
 kmeans <- function(nodes, df){
   len <- nrow(df)
@@ -338,19 +339,46 @@ kmeans <- function(nodes, df){
       past <- clusters
     }
     numiter <- numiter + 1
-    new_centr <- t(sapply(1:nodes, function(x) 
+    centr <- t(sapply(1:nodes, function(x) 
       sapply(1:9, function (y) mean(val[clusters == x, y]))
     ))
-    # new_centr <- sapply(1:nodes, function(x) colocar(new_centr[x,], val[clusters == x, ], 0))
-    # centr <- t(sapply(1:nodes, function(x) val[clusters == x, ][new_centr[x],]))
-    centr <- new_centr
-    ids <- sapply(1:nodes, function(x) df[clusters == x, 6][new_centr[x]])
   }
   return(list(clusters, centr))
 }
 ```
 
-### Prueba de algoritmo
+### Kmedians
+```{r}
+kmedians <- function(nodes, df){
+  len <- nrow(df)
+  ids <- sample(len, nodes)
+  val <- df[,7:16]
+  centr <- val[ids,]
+  clusters <- rep(0, len)
+  clusters[ids] <- 1:nodes
+  past <- clusters
+  numiter <- 0
+  while(numiter < 100){
+    clusters <- sapply(1:len, function(x) colocar(val[x,],centr, past[x]))
+    print(abs(sum(clusters!=past)))
+    if(abs(sum(clusters!=past)) == 0){
+      break
+    } else{
+      past <- clusters
+    }
+    numiter <- numiter + 1
+    new_centr <- t(sapply(1:nodes, function(x) 
+      sapply(1:9, function (y) median(val[clusters == x, y]))
+    ))
+    new_centr <- sapply(1:nodes, function(x) colocar(new_centr[x,], val[clusters == x, ], 0))
+    centr <- t(sapply(1:nodes, function(x) val[clusters == x, ][new_centr[x],]))
+    ids <- sapply(1:nodes, function(x) df[clusters == x, 6][new_centr[x]])
+  }
+  return(list(clusters, centr, ids))
+}
+```
+
+### Prueba de kmeans
 ```{r}
 t <- proc.time()
 clusters <- 5
@@ -360,7 +388,7 @@ Q <- prueba_kmeans[[1]]
 centr <- prueba_kmeans[[2]]
 ```
 
-## Resumen clusters
+### Resumen clusters
 ```{r}
 sapply(1:clusters, function(x) colSums(mdl_4[Q == x,7:16]))
 ```
@@ -369,26 +397,52 @@ sapply(1:clusters, function(x) colSums(mdl_4[Q == x,7:16]))
 sapply(1:clusters, function(x) sum(Q == x))
 ```
 
-## Paralelización de la función
+### Prueba de kmedians
 ```{r}
-kmeans_par <- function(n, clst, mdl_4, cores) {
+t <- proc.time()
+clusters <- 5
+prueba_kmedians <- kmedians(clusters, mdl_4)
+proc.time() - t
+```
+
+De este se pueden sacar las observaciones que son centroides para su interpretación
+```{r}
+mdl_4[mdl_4$id == prueba_kmedians[[3]], 5]
+```
+
+### Paralelización de las funciones
+Sirve para hacer simulaciones y encontrar el set de clusters más usado
+```{r}
+kmeans_par <- function(n, clst, mdl, cores) {
   cl <- makeCluster(cores) 
   clusterExport(
     cl,
-    varlist = c("clusters", "mdl_4", "kmeans", "colocar"),
+    varlist = c("clusters","mdl_1","mdl_2","mdl_3","mdl_4","kmeans","colocar"),
     envir = environment())
-  resultados <- parSapply(cl, 1:n, function(x) kmeans(clst, mdl_4))
+  resultados <- parSapply(cl, 1:n, function(x) kmeans(clst, mdl)[[2]])
+  stopCluster(cl)
+  return(resultados)
+}
+```
+
+```{r}
+kmedians_par <- function(n, clst, mdl_4, cores) {
+  cl <- makeCluster(cores) 
+  clusterExport(
+    cl,
+    varlist = c("clusters","mdl_1","mdl_2","mdl_3","mdl_4","kmedians","colocar"),
+    envir = environment())
+  resultados <- parSapply(cl, 1:n, function(x) kmedians(clst, mdl)[[3]])
   stopCluster(cl)
   return(resultados)
 }
 ```
 
 ### Prueba algoritmo 
-Requiere cambiar los returns para solo obtener los índices de los clusters
 ```{r}
 t <- proc.time()
 clusters <- 5
-res5 <- kmeans_par(10, clusters, mdl_4, 5)
+res5 <- kmedians_par(10, clusters, mdl_4, 5)
 proc.time() - t
 ```
 
@@ -400,18 +454,16 @@ proc.time() - t
 # write.csv(res5, "res/res5.csv")
 ```
 
-
-### Obtener el set de clusters moda
-
+### Obtener el set de clusters moda para kmedians
 ```{r}
-vec <- as.vector(sapply(data.frame(res5), function(x) x[[2]]))
+vec <- as.vector(sapply(data.frame(res5), function(x) x[[3]]))
 # centr <- sapply(data.frame(res5), function(x) sort(x))
 # df <- t(centr)
 df <- apply(mtx, 1, paste, collapse = "-")
 (tabla <- sort(table(df), decreasing = TRUE))
 ```
 
-## Obtención de la clusterización óptima
+## Obtención de la clusterización óptima por medio del método del codo
 ```{r}
 wcss <- function(nodes, df){
   res <- kmeans(i, df)
@@ -442,16 +494,28 @@ proc.time() - t
 
 
 ```{r}
-metrica$x <- 1:10
-ggplot(metrica, aes(x = x)) + 
-  geom_line(aes(y=mdl1)) + 
-  geom_line(aes(y=mdl2)) +
-  geom_line(aes(y=mdl3)) +
-  geom_line(aes(y=mdl4), color = "blue") +
-  theme_minimal() + 
-  labs(title = "Métrica WCSS", 
+metrica_mean$x <- 1:10
+metrica_mean <- metrica_mean %>%
+  pivot_longer(cols = starts_with("mdl"), 
+               names_to = "modelo", 
+               values_to = "valor")
+ggplot(metrica_mean, aes(x = x, y = valor, color = modelo)) +
+  geom_line() +
+  geom_point(show.legend = FALSE) +  
+  scale_color_manual(values = c("mdl1" = "darkorange", 
+                                "mdl2" = "cyan", 
+                                "mdl3" = "red", 
+                                "mdl4" = "blue"), 
+                     labels = c("mdl1" = "Modelo 1", 
+                                "mdl2" = "Modelo 2", 
+                                "mdl3" = "Modelo 3", 
+                                "mdl4" = "Modelo 4")) +
+  theme_minimal() +
+  labs(title = "Métrica WCSS con medias", 
        x = "clusters",
-       y = "WCSS")
+       y = "WCSS",
+       color = "Modelos") +
+  theme(legend.position = "right")
 ```
 
 
