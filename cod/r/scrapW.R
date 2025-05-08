@@ -75,5 +75,10 @@ scrapW <- function(name){
   datos$mensaje <- gsub("<Se editó este mensaje.>", "", datos$mensaje)
   datos <- datos[datos$mensaje != "",]
   rownames(datos) <- NULL
+  
+  # Censurar nombres
+  autores.unicos <- unique(datos$autor)
+  nombres.nuevos <- paste0("Autor ", seq_along(autores.unicos) - 1)
+  datos$autor <- nombres.nuevos[match(datos$autor, autores.unicos)]
   return(datos)
 }
