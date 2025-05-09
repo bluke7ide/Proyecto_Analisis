@@ -440,11 +440,12 @@ kmedians_par <- function(n, clst, mdl, cores) {
 
 ### Prueba algoritmo 
 ```{r}
-t <- proc.time()
-clusters <- 5
-res5 <- kmedians_par(1000, clusters, mdl_4, 6)
-proc.time() - t
-write.csv(res5, "res/res5.csv")
+# t <- proc.time()
+# clusters <- 5
+# res5 <- kmedians_par(1000, clusters, mdl_4, 6)
+# proc.time() - t
+# write.csv(res5, "res/res5.csv")
+res5 <- read.csv("res/res5.csv") %>% select(-1)
 ```
 
 ### Obtener el set de centroides moda para kmedians
