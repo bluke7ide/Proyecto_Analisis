@@ -283,7 +283,6 @@ Hay menos mensajes en el original puesto que los emojis solos no se tokenizan.
 rm(gen_c)
 ```
 
-# Clusterización
 ## Eliminación de las variables no significativas (sin sentimientos)
 Se procederá a dividir los modelos más, un lado sin los sentimientos en 0
 
@@ -306,6 +305,7 @@ rm(ind_o,
    mdl_s)
 ```
 
+# Clusterización por medio de métodos vistos en clase (kmeans)
 ## Funciones de clusterización
 ```{r}
 colocar <- function(ind, centroids, past){
@@ -553,6 +553,81 @@ fig <- ggplot(metrica_median, aes(x = x, y = valor, color = modelo)) +
 
 ggsave("res/kmedians.pdf", fig, width = 6, height = 4)
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Clusterización por medio de métodos externos a las clases 
+## Clustering Jerárquico
+```{r}
+dist_mat <- dist(mdl_1[,7:16])
+hc <- hclust(dist_mat, method = "ward.D2")
+
+
+
+# Cortar en 3 clusters
+clusters <- cutree(hc, k = 3)
+table(clusters, mdl_1$anger)
+
+```
+
+```{r}
+library(dbscan)
+
+# Usamos iris sin la clase
+X <- iris[, -5]
+
+# Ajuste de DBSCAN (eps y minPts se eligen con juicio o gráfico kNNdistplot)
+db <- dbscan(X, eps = 0.5, minPts = 5)
+
+# Clusters encontrados
+table(db$cluster)
+
+# Visualización
+plot(X, col = db$cluster + 1L, pch = 20)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
