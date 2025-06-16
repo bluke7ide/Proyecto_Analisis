@@ -10,7 +10,11 @@ pacman::p_load(
   RColorBrewer,
   tidytext,
   syuzhet,
-  parallel
+  parallel,
+  dbscan,
+  mclust,
+  kohonen,
+  pdfCluster
 )
 
 # Scripts de R ------------------------------------------------------------

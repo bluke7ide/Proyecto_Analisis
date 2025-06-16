@@ -18,7 +18,7 @@ source("cod/r/setup.R")
 
 ```{r}
 gen <- scrapW("genfiltrada")
-herra <- scrapT("herraII_08-07-24")
+# herra <- scrapT("herraII_08-07-24")
 ```
 
 # Gráficos
@@ -555,55 +555,66 @@ ggsave("res/kmedians.pdf", fig, width = 6, height = 4)
 ```
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # Clusterización por medio de métodos externos a las clases 
+
+```{r}
+rm(mdl_1,
+   mdl_2,
+   mdl_3)
+modelo <- mdl_4[,7:16]
+```
+
 ## Clustering Jerárquico
 ```{r}
-dist_mat <- dist(mdl_1[,7:16])
+dist_mat <- dist(modelo)
 hc <- hclust(dist_mat, method = "ward.D2")
 
-
-
 # Cortar en 3 clusters
-clusters <- cutree(hc, k = 3)
-table(clusters, mdl_1$anger)
+clusters <- cutree(hc, k = 5)
+table(clusters)
 
 ```
 
+## DBSCAN
 ```{r}
-library(dbscan)
-
-# Usamos iris sin la clase
-X <- iris[, -5]
-
 # Ajuste de DBSCAN (eps y minPts se eligen con juicio o gráfico kNNdistplot)
-db <- dbscan(X, eps = 0.5, minPts = 5)
+db <- dbscan(modelo, eps = 0.5, minPts = 10)
 
 # Clusters encontrados
 table(db$cluster)
 
 # Visualización
-plot(X, col = db$cluster + 1L, pch = 20)
+# plot(modelo[1:2], col = db$cluster + 1L, pch = 20)
 ```
 
+## GMM
+```{r}
+# Modelado con GMM
+gmm <- Mclust(modelo)
 
+# Clusters estimados
+summary(gmm)
+
+# Visualización
+# plot(gmm, what = "classification")
+
+```
+
+## SOM
+```{r}
+X <- scale(modelo)
+
+# Crear la grid y entrenar SOM
+som_grid <- somgrid(xdim = 5, ydim = 5, topo = "hexagonal")
+som_model <- som(X, grid = som_grid, rlen = 100)
+
+# Visualización
+plot(som_model, type = "mapping", main = "SOM Clustering")
+```
+
+```{r}
+table(som_model$unit.classif)
+```
 
 
 
