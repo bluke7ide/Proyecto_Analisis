@@ -14,7 +14,11 @@ pacman::p_load(
   dbscan,
   mclust,
   kohonen,
-  pdfCluster
+  pdfCluster,
+  kernlab,
+  teigen,
+  meanShiftR,
+  subspace
 )
 
 # Scripts de R ------------------------------------------------------------

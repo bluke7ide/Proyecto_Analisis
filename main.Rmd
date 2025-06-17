@@ -616,6 +616,42 @@ plot(som_model, type = "mapping", main = "SOM Clustering")
 table(som_model$unit.classif)
 ```
 
+## Spectral Clustering
+```{r}
+sc <- specc(as.matrix(modelo), centers = 3)
+
+# Resultados
+table(sc)
+
+# Visualización
+plot(modelo, col = sc, pch = 20)
+```
+
+#
+\
+# Modelos de mezcla no Gaussianos
+```{r}
+teigen_model <- teigen(modelo, )
+
+# Resultados
+table(teigen_model$classification)
+```
+
+## Mean Shift Clustering
+```{r}
+X <- scale(modelo)
+
+# 3. Ejecutar Mean Shift
+#    bandwidth es el parámetro de ventana; prueba varios valores (0.5, 1, 1.5, ...)
+ms_res <- meanShift(X)
+
+# 4. Obtener clusters asignados
+clusters_ms <- ms_res$assignment
+
+# 5. Ver resultados
+print(table(clusters_ms))
+```
+
 
 
 
