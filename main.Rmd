@@ -305,7 +305,7 @@ rm(ind_o,
    mdl_s)
 ```
 
-# Clusterización por medio de métodos vistos en clase (kmeans)
+# Clusterización por medio de métodos vistos en clase 
 ## Funciones de clusterización
 ```{r}
 colocar <- function(ind, centroids, past){
@@ -384,30 +384,29 @@ kmedians <- function(nodes, df){
 ```{r}
 t <- proc.time()
 clusters <- 5
-prueba_kmeans <- kmeans(clusters, mdl_4)
+clus_mean <- kmeans(clusters, mdl_4)
 proc.time() - t
 ```
 
 ### Resumen clusters
 ```{r}
-sapply(1:clusters, function(x) colSums(mdl_4[prueba_kmeans[[1]] == x,7:16]))
+sapply(1:clusters, function(x) colSums(mdl_4[clus_mean[[1]] == x,7:16]))
 ```
 
 ```{r}
-sapply(1:clusters, function(x) sum(prueba_kmeans[[1]] == x))
+sapply(1:clusters, function(x) sum(clus_mean[[1]] == x))
 ```
 
 ### Prueba de kmedians
 ```{r}
 t <- proc.time()
-clusters <- 5
-prueba_kmedians <- kmedians(clusters, mdl_4)
+clus_median <- kmedians(5, mdl_4)
 proc.time() - t
 ```
 
 De este se pueden sacar las observaciones que son centroides para su interpretación
 ```{r}
-sapply(1:clusters, function(x) mdl_4[mdl_4$id == prueba_kmedians[[3]][x], 4])
+sapply(1:clusters, function(x) mdl_4[mdl_4$id == clus_median[[3]][x], 4])
 ```
 
 ### Paralelización de las funciones
@@ -554,111 +553,149 @@ fig <- ggplot(metrica_median, aes(x = x, y = valor, color = modelo)) +
 ggsave("res/kmedians.pdf", fig, width = 6, height = 4)
 ```
 
-
-# Clusterización por medio de métodos externos a las clases 
+## Obtención del mejor modelo
+Puesto lo anterior, se quedará solo con el modelo 4, al presentar mejores agrupaciones
+```{r}
+modelo <- mdl_4[,7:16]
+cat_mdl <- mdl_4
+```
 
 ```{r}
 rm(mdl_1,
    mdl_2,
-   mdl_3)
-modelo <- mdl_4[,7:16]
+   mdl_3, 
+   mdl_4,
+   kmeans,
+   kmedians, 
+   colocar, 
+   t)
 ```
+
+## Acomodo de clusters
+```{r}
+clusters <- data.frame(kmeans = clus_mean[[1]],
+                       kmedians = clus_median[[1]],
+                       jerarquico = 0,
+                       dbscan = 0,
+                       gmm = 0,
+                       som = 0,
+                       spectral = 0,
+                       teigen = 0,
+                       meanshift = 0)
+```
+
+```{r}
+rm(clus_mean,
+   clus_median)
+```
+
 
 ## Clustering Jerárquico
 ```{r}
-dist_mat <- dist(modelo)
-hc <- hclust(dist_mat, method = "ward.D2")
-
-# Cortar en 3 clusters
-clusters <- cutree(hc, k = 5)
-table(clusters)
-
+clusters$jerarquico <- cutree(hclust(dist(modelo), method = "ward.D2"), k = 5)
+table(clusters$jerarquico)
 ```
 
+# Clusterización por medio de métodos externos a las clases
 ## DBSCAN
+Hay que tomar un intervalo entero por discretización
 ```{r}
-# Ajuste de DBSCAN (eps y minPts se eligen con juicio o gráfico kNNdistplot)
-db <- dbscan(modelo, eps = 0.5, minPts = 10)
-
-# Clusters encontrados
-table(db$cluster)
-
-# Visualización
-# plot(modelo[1:2], col = db$cluster + 1L, pch = 20)
+clusters$dbscan <- dbscan(modelo, eps = 1, minPts = 20)$cluster + 1
+table(clusters$dbscan)
 ```
 
 ## GMM
 ```{r}
-# Modelado con GMM
-gmm <- Mclust(modelo)
-
-# Clusters estimados
-summary(gmm)
-
-# Visualización
-# plot(gmm, what = "classification")
-
+clusters$gmm <- Mclust(modelo)$classification
+table(clusters$gmm)
 ```
 
 ## SOM
 ```{r}
-X <- scale(modelo)
-
-# Crear la grid y entrenar SOM
-som_grid <- somgrid(xdim = 5, ydim = 5, topo = "hexagonal")
-som_model <- som(X, grid = som_grid, rlen = 100)
-
-# Visualización
-plot(som_model, type = "mapping", main = "SOM Clustering")
-```
-
-```{r}
-table(som_model$unit.classif)
+clusters$som <- som(scale(modelo), somgrid(xdim = 3, ydim = 3, topo = "hexagonal"), rlen = 100)$unit.classif
+table(clusters$som)
 ```
 
 ## Spectral Clustering
 ```{r}
-sc <- specc(as.matrix(modelo), centers = 3)
-
-# Resultados
-table(sc)
-
-# Visualización
-plot(modelo, col = sc, pch = 20)
+clusters$spectral <- specc(as.matrix(modelo), centers = 5)
+table(clusters$spectral)
 ```
 
-#
-\
-# Modelos de mezcla no Gaussianos
+## Modelos de mezcla no Gaussianos
 ```{r}
-teigen_model <- teigen(modelo, )
-
-# Resultados
-table(teigen_model$classification)
+# 3 clusters es el máximo que converge
+clusters$teigen <- teigen(modelo, Gs = 3)$classification
+table(clusters$teigen )
 ```
 
 ## Mean Shift Clustering
 ```{r}
-X <- scale(modelo)
+clusters$meanshift <- meanShift(scale(modelo), epsilonCluster = 2.5)$assignment[,1]
+table(clusters$meanshift)
+```
 
-# 3. Ejecutar Mean Shift
-#    bandwidth es el parámetro de ventana; prueba varios valores (0.5, 1, 1.5, ...)
-ms_res <- meanShift(X)
+# Comparación de modelos 
 
-# 4. Obtener clusters asignados
-clusters_ms <- ms_res$assignment
+## Coeficiente de Silhouette
+Se sitúa entre -1 y 1. Más alto mejor. Parece un índice de parsimonía
+```{r}
+silhouette <- sapply(1:9, function(x) mean(silhouette(clusters[,x], dist(modelo))[, 3]))
+```
 
-# 5. Ver resultados
-print(table(clusters_ms))
+## Índice de Calinski-Harabasz
+Más alto mejor
+```{r}
+cal_har <- sapply(1:9, function(x) intCriteria(as.matrix(modelo), as.integer(clusters[,x]), "Calinski_Harabasz")$calinski_harabasz)
+```
+
+## Índice de Davies-Bouldin
+Más bajo es mejor
+```{r}
+dav_bou <- sapply(1:9, function(x) intCriteria(as.matrix(modelo), as.integer(clusters[,x]), "Davies_Bouldin")$davies_bouldin)
 ```
 
 
+## Resumen estadísticas
+```{r}
+nclus <- sapply(1:9, function(x) max(clusters[,x]))
+resumen <- data.frame(método = names(clusters),
+                      clusters = nclus,
+                      silhouette,
+                      cal_har,
+                      dav_bou)
+resumen 
+```
 
+## Elegir el método más adecuado
+Se descartan por ser los peores:
+- gmm: por tener el tercero más alto
+- dbscan: por tener el segundo más bajo
+- kmedians: por tener el primero más bajo
 
+```{r}
+(resumen %>% slice(-c(2,4,5)))
+```
 
+De nuevo descartamos por ser los peores:
+- kmeans en el primero
+- meanshift en el segundo
+- jerarquico en el tercero
 
+Note que el jerárquico y meanshift ajustan de primeros en otras métricas, pero nos interesa una mejor elección en todas
 
+```{r}
+(resumen %>% slice(-c(1,2,3,4,5,9)))
+```
 
+Por último, se descarta
+- spectral por ser el peor en el primero y tercero 
+- teigen por ser el peor en el segundo
+
+Por lo tanto, el modelo som, o Self Organizing Maps es el escogido
+```{r}
+
+```
 
 
 

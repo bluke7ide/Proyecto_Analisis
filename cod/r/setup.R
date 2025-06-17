@@ -18,7 +18,9 @@ pacman::p_load(
   kernlab,
   teigen,
   meanShiftR,
-  subspace
+  subspace,
+  cluster,
+  clusterCrit
 )
 
 # Scripts de R ------------------------------------------------------------
