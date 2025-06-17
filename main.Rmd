@@ -694,11 +694,22 @@ Por último, se descarta
 
 Por lo tanto, el modelo som, o Self Organizing Maps es el escogido
 ```{r}
-
+sapply(1:9, function(x) colSums(cat_mdl[clusters$som == x,7:16]))
 ```
 
+```{r}
+sapply(1:9, function(x) sum(clusters$som == x))
+```
 
+```{r}
+plot(som(scale(modelo), somgrid(xdim = 3, ydim = 3, topo = "hexagonal"), rlen = 100))
+```
 
+```{r}
+plot(som(scale(modelo), somgrid(xdim = 3, ydim = 3, topo = "hexagonal"), rlen = 100),
+     type = "mapping",
+     main = "SOM Clustering")
+```
 
 
 
