@@ -678,37 +678,45 @@ Se descartan por ser los peores:
 ```
 
 De nuevo descartamos por ser los peores:
-- kmeans en el primero
+- kmeans en el primero y tercero
 - meanshift en el segundo
-- jerarquico en el tercero
 
 Note que el jerárquico y meanshift ajustan de primeros en otras métricas, pero nos interesa una mejor elección en todas
 
 ```{r}
-(resumen %>% slice(-c(1,2,3,4,5,9)))
+(resumen %>% slice(-c(1,2,4,5,9)))
 ```
 
 Por último, se descarta
-- spectral por ser el peor en el primero y tercero 
+- jerarquico por ser el peor en el primero
+- spectral por ser el peor en el tercero 
 - teigen por ser el peor en el segundo
 
+# Modelo escogido
 Por lo tanto, el modelo som, o Self Organizing Maps es el escogido
 ```{r}
-sapply(1:9, function(x) colSums(cat_mdl[clusters$som == x,7:16]))
+som <- som(scale(modelo), somgrid(xdim = 3, ydim = 3, topo = "hexagonal"), rlen = 100)
 ```
 
 ```{r}
-sapply(1:9, function(x) sum(clusters$som == x))
+(c_emotions <- sapply(1:9, function(x) colSums(cat_mdl[som$unit.classif == x,7:16])))
 ```
 
 ```{r}
-plot(som(scale(modelo), somgrid(xdim = 3, ydim = 3, topo = "hexagonal"), rlen = 100))
+c_emotions/rowSums(c_emotions)
+```
+
+
+```{r}
+sapply(1:9, function(x) sum(som$unit.classif == x))
 ```
 
 ```{r}
-plot(som(scale(modelo), somgrid(xdim = 3, ydim = 3, topo = "hexagonal"), rlen = 100),
-     type = "mapping",
-     main = "SOM Clustering")
+plot(som)
+```
+
+```{r}
+plot(som, type = "mapping", main = "SOM Clustering")
 ```
 
 
