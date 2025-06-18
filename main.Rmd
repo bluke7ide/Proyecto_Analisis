@@ -349,7 +349,7 @@ kmeans <- function(nodes, df){
 }
 ```
 
-### Kmedians
+### Kmedians  
 ```{r}
 kmedians <- function(nodes, df){
   len <- nrow(df)
@@ -706,19 +706,27 @@ som <- som(scale(modelo), somgrid(xdim = 3, ydim = 3, topo = "hexagonal"), rlen 
 c_emotions/rowSums(c_emotions)
 ```
 
-
 ```{r}
 sapply(1:9, function(x) sum(som$unit.classif == x))
 ```
 
 ```{r}
+par(mfrow = c(1, 2))
 plot(som)
+plot(som, type = "mapping", main = "SOM Clustering")
+par(mfrow = c(1, 1))
 ```
 
 ```{r}
-plot(som, type = "mapping", main = "SOM Clustering")
+centr <- sapply(1:9, function(x) sapply(1:10, function(y) median(modelo[clusters[,6] == x,y])))
 ```
 
+```{r}
+dist <- sapply(1:9, function(x) 
+  sapply(1:length(modelo[clusters$som == x,1]), 
+         function(y) sum((modelo[clusters$som == x,][y,] - centr[,x])^2)))
+sapply(1:9, function(x) which(dist[[x]] == min(dist[[x]])))
+```
 
 
 
