@@ -712,8 +712,6 @@ Defina los clusters:
 - 8. El cluster del miedo (40% sorpresa y 21% miedo)
 - 9. El cluster pesimista (40% anger, 70% disgust, 30% negative)
 
-
-
 ```{r}
 round(c_emotions/rowSums(c_emotions),2)
 ```
@@ -723,10 +721,14 @@ sapply(1:9, function(x) sum(som$unit.classif == x))
 ```
 
 ```{r}
+pdf("res/som_graficos.pdf", width = 10, height = 5)  # Puedes ajustar tamaño
+
 par(mfrow = c(1, 2))
 plot(som)
 plot(som, type = "mapping", main = "SOM Clustering")
 par(mfrow = c(1, 1))
+
+dev.off()
 ```
 
 ## Mensajes centroides
@@ -765,7 +767,7 @@ df_heat <- df_prop %>%
   select(autor, cluster, prop) %>%
   pivot_wider(names_from = cluster, values_from = prop, values_fill = 0)
 
-ggplot(df_prop, aes(x = factor(cluster), y = autor, fill = prop)) +
+fig <- ggplot(df_prop, aes(x = factor(cluster), y = autor, fill = prop)) +
   geom_tile(color = "black") +
   scale_fill_gradient(
     name = "Proporción",
@@ -775,10 +777,11 @@ ggplot(df_prop, aes(x = factor(cluster), y = autor, fill = prop)) +
   labs(
     x = "Cluster SOM",
     y = "Autor",
-    title = "Heatmap: proporción de mensajes de cada autor por cluster"
+    title = "Proporción de mensajes de cada autor por cluster"
   ) +
   theme_minimal() +
   theme(axis.text.y = element_text(size = 6))
+ggsave("res/heatmap.pdf", fig)
 ```
 
 ```{r}
@@ -788,7 +791,7 @@ df_dom <- df_prop %>%
   select(autor, cluster, prop) %>%
   arrange(desc(prop))
 
-ggplot(df_dom, aes(x = reorder(autor, prop), y = prop, fill = factor(cluster))) +
+fig <- ggplot(df_dom, aes(x = reorder(autor, prop), y = prop, fill = factor(cluster))) +
   geom_col() +
   coord_flip() +
   scale_y_continuous(labels = scales::percent_format()) +
@@ -796,10 +799,10 @@ ggplot(df_dom, aes(x = reorder(autor, prop), y = prop, fill = factor(cluster))) 
     x = "Autor",
     y = "Proporción en su cluster dominante",
     fill = "Cluster",
-    title = "Cluster mayoritario por autor"
+    title = "Cluster dominante de cada autor"
   ) +
   theme_minimal()
-
+ggsave("res/dominante.pdf", fig)
 ```
 
 

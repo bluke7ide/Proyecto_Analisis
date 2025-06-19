@@ -18,7 +18,6 @@ pacman::p_load(
   kernlab,
   teigen,
   meanShiftR,
-  subspace,
   cluster,
   clusterCrit,
   ggalluvial
