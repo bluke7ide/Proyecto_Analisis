@@ -776,12 +776,11 @@ fig <- ggplot(df_prop, aes(x = factor(cluster), y = autor, fill = prop)) +
   ) +
   labs(
     x = "Cluster SOM",
-    y = "Autor",
-    title = "Proporción de mensajes de cada autor por cluster"
+    y = "Autor"
   ) +
   theme_minimal() +
   theme(axis.text.y = element_text(size = 6))
-ggsave("res/heatmap.pdf", fig)
+ggsave("res/heatmap.pdf", fig, width = 8, height = 5)
 ```
 
 ```{r}
@@ -798,11 +797,10 @@ fig <- ggplot(df_dom, aes(x = reorder(autor, prop), y = prop, fill = factor(clus
   labs(
     x = "Autor",
     y = "Proporción en su cluster dominante",
-    fill = "Cluster",
-    title = "Cluster dominante de cada autor"
+    fill = "Cluster"
   ) +
   theme_minimal()
-ggsave("res/dominante.pdf", fig)
+ggsave("res/dominante.pdf", fig, width = 8, height = 5)
 ```
 
 
