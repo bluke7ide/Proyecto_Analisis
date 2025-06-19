@@ -694,16 +694,28 @@ Por último, se descarta
 
 # Modelo escogido
 Por lo tanto, el modelo som, o Self Organizing Maps es el escogido
+## Estadísticas breves
 ```{r}
+set.seed(16)
 som <- som(scale(modelo), somgrid(xdim = 3, ydim = 3, topo = "hexagonal"), rlen = 100)
-```
-
-```{r}
 (c_emotions <- sapply(1:9, function(x) colSums(cat_mdl[som$unit.classif == x,7:16])))
 ```
 
+Defina los clusters:
+- 1. El cluster de confianza (155 y 108 positivo)
+- 2. El cluster de felicidad (50% de los datos)
+- 3. El cluster de espontaneidad (46% sorpresa, 40% felicidad y 30% anticipación)
+- 4. El cluster de la anticipación (30% anticipación sola)
+- 5. El cluster de la frustración (27% enojo, 21% miedo)
+- 6. El cluster de los mensajes largos (2 observaciones con mucho peso)
+- 7. El cluster de la tristeza (46% sadness)
+- 8. El cluster del miedo (40% sorpresa y 21% miedo)
+- 9. El cluster pesimista (40% anger, 70% disgust, 30% negative)
+
+
+
 ```{r}
-c_emotions/rowSums(c_emotions)
+round(c_emotions/rowSums(c_emotions),2)
 ```
 
 ```{r}
@@ -717,23 +729,78 @@ plot(som, type = "mapping", main = "SOM Clustering")
 par(mfrow = c(1, 1))
 ```
 
+## Mensajes centroides
 ```{r}
-centr <- sapply(1:9, function(x) sapply(1:10, function(y) median(modelo[clusters[,6] == x,y])))
+centr <- sapply(1:9, function(x) sapply(1:10, function(y) median(modelo[som$unit.classif == x,y])))
 ```
 
 ```{r}
 dist <- sapply(1:9, function(x) 
-  sapply(1:length(modelo[clusters$som == x,1]), 
-         function(y) sum((modelo[clusters$som == x,][y,] - centr[,x])^2)))
-sapply(1:9, function(x) which(dist[[x]] == min(dist[[x]])))
+  sapply(1:length(modelo[som$unit.classif == x,1]), 
+         function(y) sum((modelo[som$unit.classif == x,][y,] - centr[,x])^2)))
+set.seed(15)
+tomar <- sapply(1:9, function(x) sample(which(dist[[x]] == min(dist[[x]])),1))
 ```
 
+```{r}
+sapply(1:9, function(x) cat_mdl$mensaje[som$unit.classif == x][tomar[x]])
+```
 
+```{r}
+df <- data.frame(
+  autor   = cat_mdl$autor,
+  cluster = som$unit.classif
+)
 
+df_prop <- df %>%
+  count(autor, cluster, name = "n") %>%
+  group_by(autor) %>%
+  mutate(
+    total_autor = sum(n),
+    prop        = n / total_autor
+  ) %>%
+  ungroup()
 
+df_heat <- df_prop %>%
+  select(autor, cluster, prop) %>%
+  pivot_wider(names_from = cluster, values_from = prop, values_fill = 0)
 
+ggplot(df_prop, aes(x = factor(cluster), y = autor, fill = prop)) +
+  geom_tile(color = "black") +
+  scale_fill_gradient(
+    name = "Proporción",
+    low = "red",   # color para valores bajos
+    high = "green" # color para valores altos
+  ) +
+  labs(
+    x = "Cluster SOM",
+    y = "Autor",
+    title = "Heatmap: proporción de mensajes de cada autor por cluster"
+  ) +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 6))
+```
 
+```{r}
+df_dom <- df_prop %>%
+  group_by(autor) %>%
+  slice_max(prop, n = 1, with_ties = FALSE) %>%
+  select(autor, cluster, prop) %>%
+  arrange(desc(prop))
 
+ggplot(df_dom, aes(x = reorder(autor, prop), y = prop, fill = factor(cluster))) +
+  geom_col() +
+  coord_flip() +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(
+    x = "Autor",
+    y = "Proporción en su cluster dominante",
+    fill = "Cluster",
+    title = "Cluster mayoritario por autor"
+  ) +
+  theme_minimal()
+
+```
 
 
 
