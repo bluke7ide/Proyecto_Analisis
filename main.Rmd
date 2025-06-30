@@ -12,17 +12,19 @@ output:
 ---
 
 # Librerías y carga de datos
+Nota: El archivo autoreproducible es el main.rmd, en conjunto con todas las 
+carpetas de proyecto. 
 ```{r}
 source("cod/r/setup.R")
 ```
 
 ```{r}
 gen <- scrapW("genfiltrada")
-# herra <- scrapT("herraII_08-07-24")
 ```
 
 # Gráficos
-```{r, warning=FALSE}
+## Cantidad de mensajes por mes y año
+```{r, warning=FALSE, echo=FALSE}
 cuentas <- gen %>%
   mutate(mes = floor_date(as.Date(dia), "month")) %>%
   count(mes)
@@ -37,17 +39,8 @@ ggplot(cuentas, aes(x = mes, y = n)) +
 
 ```
 
-```{r}
-# Gráfico con las horas registradas por día
-ggplot(gen, aes(x = dia, y = hora)) +
-  geom_point(color = "darkblue", alpha = 0.6) +
-  labs(x = "Día",
-       y = "Hora (seg)") +
-  theme_minimal()
-
-```
-
-```{r}
+## Top de autores con más mensajes
+```{r, echo=FALSE}
 cuentas <- gen%>%count(autor) %>% arrange(desc(n))
 cuentas$autor <- factor(cuentas$autor, levels = cuentas$autor)
 cuentas <- cuentas[cuentas$n >70,]
@@ -61,7 +54,8 @@ ggplot(cuentas, aes(x = autor, y = n)) +
   theme(axis.text.x = element_text(angle = 30, hjust = 0.8))
 ```
 
-```{r, warning =FALSE}
+## Cantidad de mensajes por hora
+```{r, warning =FALSE, echo=FALSE}
 cuentas <- gen%>%count(hour(hora)) %>% arrange(desc(n))
 
 # Gráfico con la cantidad de mensajes por hora
@@ -73,7 +67,8 @@ ggplot(cuentas, aes(x = `hour(hora)`, y = n)) +
   theme(axis.text.x = element_text(hjust = 0.8))
 ```
 
-```{r}
+## Boxplot de cada autor
+```{r, echo=FALSE}
 copia <- gen
 rangos <- gen %>%
   group_by(autor) %>%
@@ -91,7 +86,8 @@ ggplot(copia, aes(y = autor, x = hora / 3600)) +
   theme_minimal()
 ```
 
-```{r}
+## Mayor cantidad de mensajes editados
+```{r, echo=FALSE}
 cuentas <- gen %>% group_by(autor) %>% 
   summarise(m_editados = sum(editado)) %>% 
   arrange(desc(m_editados))
@@ -99,27 +95,24 @@ cuentas <- cuentas[cuentas$m_editados >0,]
 cuentas$autor <- factor(cuentas$autor, levels = cuentas$autor)
 ggplot(cuentas, aes(x = autor, y = m_editados)) +
   geom_col(fill = "darkorange", color="black") +
-  labs(title = "Mayor cantidad de mensajes editados",
-       x = "Autores",
+  labs(x = "Autores",
        y = "Número de mensajes editados") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 30, hjust = 0.8))
 
 ```
 
-# Mapa de palabras
-```{r}
+## Mapa de palabras
+```{r, echo=FALSE, echo=FALSE}
 palabras <- gen$mensaje
 mensajes_clean <- gsub("[[:punct:]]", "", tolower(palabras))
 totales <- data.frame(palabras = unlist(strsplit(mensajes_clean, "\\s+")))
 cuentas <- totales %>% count(palabras)
-```
 
-```{r}
 wordcloud(words = cuentas$palabras,
           freq = cuentas$n,
-          min.freq = 8,
-          colors = colorRampPalette(brewer.pal(8, "Dark2"))(50),
+          min.freq = 9,
+          colors = colorRampPalette(c("#8E0B0B","#E67E22","#B0B0B0", "#90D9F0", "#4899F4"))(50),
           random.order = FALSE)
 ```
 
@@ -171,11 +164,11 @@ cuentas <- totales %>% count(palabras)
 ```
 
 ### Mapeo de palabras con eliminaciones
-```{r, warning=FALSE}
+```{r, warning=FALSE, echo=FALSE}
 wordcloud(words = cuentas$palabras,
           freq = cuentas$n,
           min.freq = 10,
-          colors = colorRampPalette(brewer.pal(8, "Dark2"))(50),
+          colors = colorRampPalette(c("#8E0B0B","#E67E22","#B0B0B0", "#90D9F0", "#4899F4"))(50),
           random.order = FALSE)
 ```
 
@@ -197,24 +190,22 @@ tokens <- tokens %>%
 ```
 
 ### Visualización después de eliminación
-```{r}
+```{r, warning=FALSE, echo=FALSE}
 palabras <- tokens$palabras
 mensajes_clean <- gsub("[[:punct:]]", "", tolower(palabras))
 totales <- data.frame(palabras = unlist(strsplit(mensajes_clean, "\\s+")))
 cuentas <- totales %>% count(palabras)
-```
 
-```{r, warning=FALSE}
-pdf("res/wordcloud.pdf", width = 8, height = 6)
+# pdf("res/wordcloud.pdf", width = 8, height = 6)
 
 wordcloud(words = cuentas$palabras,
           freq = cuentas$n,
           min.freq = 8,
           scale = c(1.8, 0.2),
-          colors = colorRampPalette(brewer.pal(8, "Dark2"))(50),
+          colors = colorRampPalette(c("#8E0B0B","#E67E22","#B0B0B0", "#90D9F0", "#4899F4"))(50),
           random.order = FALSE)
 
-dev.off()
+# dev.off()
 
 ```
 
@@ -231,8 +222,7 @@ Se puede notar una reducción de la mitad de las observaciones
 mdl_s <- tokens
 ```
 
-### Acomodo del ambiente
-```{r}
+```{r, warning=FALSE, echo=FALSE}
 rm(copia, 
    cuentas,
    rangos, 
@@ -279,10 +269,6 @@ mdl_s <- inner_join(gen_c, mdl_s, by = join_by(id))
 
 Hay menos mensajes en el original puesto que los emojis solos no se tokenizan.
 
-```{r}
-rm(gen_c)
-```
-
 ## Eliminación de las variables no significativas (sin sentimientos)
 Se procederá a dividir los modelos más, un lado sin los sentimientos en 0
 
@@ -298,11 +284,12 @@ mdl_3 <- mdl_o[ind_o,]
 mdl_4 <- mdl_s[ind_s,]
 ```
 
-```{r}
+```{r, warning=FALSE, echo=FALSE}
 rm(ind_o,
    ind_s,
    mdl_o,
-   mdl_s)
+   mdl_s,
+   gen_c)
 ```
 
 # Clusterización por medio de métodos vistos en clase 
@@ -457,7 +444,7 @@ tabla[tabla>5]
 
 ### Obtener los centroides moda para kmedians
 ```{r}
-tabla <- sort(table(as.vector(res5)), decreasing = T)
+tabla <- sort(table(unlist(res5)), decreasing = T)
 tabla[tabla>100]
 ```
 
@@ -489,30 +476,33 @@ wcss <- function(nodes, df){
 ```
 
 ```{r}
-t <- proc.time()
-metrica <- data.frame(mdl1 = rep(0,10),
-                      mdl2 = rep(0,10),
-                      mdl3 = rep(0,10),
-                      mdl4 = rep(0,10))
-for(i in 1:10){
-  print(i)
-  metrica$mdl1[i] <- wcss(i, mdl_1)
-  metrica$mdl2[i] <- wcss(i, mdl_2)
-  metrica$mdl3[i] <- wcss(i, mdl_3)
-  metrica$mdl4[i] <- wcss(i, mdl_4)
-}
-proc.time() - t
-metrica$x <- 1:10
-metrica <- metrica %>%
-  pivot_longer(cols = starts_with("mdl"), 
-               names_to = "modelo", 
-               values_to = "valor")
-metrica_median <- metrica
-write.csv(metrica_median, "res/metrica_median.csv")
+# t <- proc.time()
+# metrica <- data.frame(mdl1 = rep(0,10),
+#                       mdl2 = rep(0,10),
+#                       mdl3 = rep(0,10),
+#                       mdl4 = rep(0,10))
+# for(i in 1:10){
+#   print(i)
+#   metrica$mdl1[i] <- wcss(i, mdl_1)
+#   metrica$mdl2[i] <- wcss(i, mdl_2)
+#   metrica$mdl3[i] <- wcss(i, mdl_3)
+#   metrica$mdl4[i] <- wcss(i, mdl_4)
+# }
+# proc.time() - t
+# metrica$x <- 1:10
+# metrica <- metrica %>%
+#   pivot_longer(cols = starts_with("mdl"), 
+#                names_to = "modelo", 
+#                values_to = "valor")
+# metrica_median <- metrica
+# write.csv(metrica_median, "res/metrica_median.csv")
+metrica_mean <- read.csv("res/metrica_mean.csv")
+metrica_median <- read.csv("res/metrica_median.csv")
 ```
 
-```{r}
-fig <- ggplot(metrica_mean, aes(x = x, y = valor, color = modelo)) +
+### Métrica para kmeans
+```{r, warning=FALSE, echo=FALSE}
+ggplot(metrica_mean, aes(x = x, y = valor, color = modelo)) +
   geom_line() +
   geom_point(show.legend = FALSE) +  
   scale_color_manual(values = c("mdl1" = "darkorange", 
@@ -528,12 +518,13 @@ fig <- ggplot(metrica_mean, aes(x = x, y = valor, color = modelo)) +
        y = "WCSS",
        color = "Modelos") +
   theme(legend.position = "right")
-ggsave("res/kmeans.pdf", fig, width = 6, height = 4)
+# ggsave("res/kmeans.pdf", fig, width = 6, height = 4)
 
 ```
 
-```{r}
-fig <- ggplot(metrica_median, aes(x = x, y = valor, color = modelo)) +
+### Métrica para kmedians
+```{r, warning=FALSE, echo=FALSE}
+ggplot(metrica_median, aes(x = x, y = valor, color = modelo)) +
   geom_line() +
   geom_point(show.legend = FALSE) +  
   scale_color_manual(values = c("mdl1" = "darkorange", 
@@ -550,17 +541,17 @@ fig <- ggplot(metrica_median, aes(x = x, y = valor, color = modelo)) +
        color = "Modelos") +
   theme(legend.position = "right")
 
-ggsave("res/kmedians.pdf", fig, width = 6, height = 4)
+# ggsave("res/kmedians.pdf", fig, width = 6, height = 4)
 ```
 
-## Obtención del mejor modelo
+### Obtención del mejor modelo
 Puesto lo anterior, se quedará solo con el modelo 4, al presentar mejores agrupaciones
 ```{r}
 modelo <- mdl_4[,7:16]
 cat_mdl <- mdl_4
 ```
 
-```{r}
+```{r, warning=FALSE, echo=FALSE}
 rm(mdl_1,
    mdl_2,
    mdl_3, 
@@ -571,7 +562,7 @@ rm(mdl_1,
    t)
 ```
 
-## Acomodo de clusters
+### Acomodo de clusters
 ```{r}
 clusters <- data.frame(kmeans = clus_mean[[1]],
                        kmedians = clus_median[[1]],
@@ -584,9 +575,21 @@ clusters <- data.frame(kmeans = clus_mean[[1]],
                        meanshift = 0)
 ```
 
-```{r}
+```{r, warning=FALSE, echo=FALSE}
 rm(clus_mean,
-   clus_median)
+   clus_median,
+   df,
+   i,
+   indices,
+   tabla, 
+   kmeans_par,
+   kmedians_par,
+   wcss,
+   metrica,
+   metrica_mean, 
+   metrica_median,
+   centr,
+   res5)
 ```
 
 
@@ -623,7 +626,7 @@ table(clusters$spectral)
 ```
 
 ## Modelos de mezcla no Gaussianos
-```{r}
+```{r, message=FALSE}
 # 3 clusters es el máximo que converge
 clusters$teigen <- teigen(modelo, Gs = 3)$classification
 table(clusters$teigen )
@@ -721,14 +724,14 @@ sapply(1:9, function(x) sum(som$unit.classif == x))
 ```
 
 ```{r}
-pdf("res/som_graficos.pdf", width = 10, height = 5)  # Puedes ajustar tamaño
+#pdf("res/som_graficos.pdf", width = 10, height = 5)  # Puedes ajustar tamaño
 
 par(mfrow = c(1, 2))
-plot(som)
+plot(som, palette.name = colorRampPalette(c("#8E0B0B","#E67E22","#B0B0B0", "#90D9F0", "#4899F4")))
 plot(som, type = "mapping", main = "SOM Clustering")
 par(mfrow = c(1, 1))
 
-dev.off()
+# dev.off()
 ```
 
 ## Mensajes centroides
@@ -747,8 +750,8 @@ tomar <- sapply(1:9, function(x) sample(which(dist[[x]] == min(dist[[x]])),1))
 ```{r}
 sapply(1:9, function(x) cat_mdl$mensaje[som$unit.classif == x][tomar[x]])
 ```
-
-```{r}
+## Proporción de cada autor en cada cluster
+```{r, warning=FALSE, echo=FALSE}
 df <- data.frame(
   autor   = cat_mdl$autor,
   cluster = som$unit.classif
@@ -767,12 +770,11 @@ df_heat <- df_prop %>%
   select(autor, cluster, prop) %>%
   pivot_wider(names_from = cluster, values_from = prop, values_fill = 0)
 
-fig <- ggplot(df_prop, aes(x = factor(cluster), y = autor, fill = prop)) +
+ggplot(df_prop, aes(x = factor(cluster), y = autor, fill = prop)) +
   geom_tile(color = "black") +
-  scale_fill_gradient(
+  scale_fill_gradientn(
     name = "Proporción",
-    low = "red",   # color para valores bajos
-    high = "green" # color para valores altos
+    colours = colorRampPalette(c("#8E0B0B","#E67E22","#B0B0B0", "#90D9F0", "#4899F4"))(50)
   ) +
   labs(
     x = "Cluster SOM",
@@ -780,27 +782,40 @@ fig <- ggplot(df_prop, aes(x = factor(cluster), y = autor, fill = prop)) +
   ) +
   theme_minimal() +
   theme(axis.text.y = element_text(size = 6))
-ggsave("res/heatmap.pdf", fig, width = 8, height = 5)
+
+# ggsave("res/heatmap.pdf", fig, width = 8, height = 5)
 ```
 
-```{r}
+## Proporción de cada autor en su cluster dominante
+```{r, warning=FALSE, echo=FALSE}
 df_dom <- df_prop %>%
   group_by(autor) %>%
   slice_max(prop, n = 1, with_ties = FALSE) %>%
   select(autor, cluster, prop) %>%
   arrange(desc(prop))
 
-fig <- ggplot(df_dom, aes(x = reorder(autor, prop), y = prop, fill = factor(cluster))) +
+# Paleta de color continua según la proporción dominante
+paleta_autores <- colorRampPalette(c(
+  "#8E0B0B", "#E67E22", "#B0B0B0", "#90D9F0", "#4899F4"
+))(50)
+
+ggplot(df_dom, aes(x = reorder(autor, prop), y = prop, fill = prop)) +
   geom_col() +
   coord_flip() +
+  facet_wrap(~ cluster, scales = "free_y") +
+  scale_fill_gradientn(colors = paleta_autores, name = "Proporción") +
   scale_y_continuous(labels = scales::percent_format()) +
   labs(
     x = "Autor",
-    y = "Proporción en su cluster dominante",
-    fill = "Cluster"
+    y = "Proporción en su cluster dominante"
   ) +
-  theme_minimal()
-ggsave("res/dominante.pdf", fig, width = 8, height = 5)
+  theme_minimal() +
+  theme(
+    axis.text.y = element_text(size = 6),
+    strip.text = element_text(face = "bold")
+  )
+
+# ggsave("res/dominante.pdf", fig, width = 8, height = 5)
 ```
 
 

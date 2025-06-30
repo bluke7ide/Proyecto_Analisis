@@ -20,7 +20,8 @@ pacman::p_load(
   meanShiftR,
   cluster,
   clusterCrit,
-  ggalluvial
+  ggalluvial, 
+  kohonen
 )
 
 # Scripts de R ------------------------------------------------------------
